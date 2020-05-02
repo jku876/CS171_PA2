@@ -1,20 +1,42 @@
 import socket
 import time
-import random
+import threading
+import sys
+
+
+def connection(c, pid):
+    global network
+    global lock
+    while True:
+        cmd = c.recv(1024)
+        msg = cmd.decode().split(', ')
+        time.sleep(1)
+        if msg[0] == 'request':
+            for process in network:
+                if pid != process:
+                    network[process].sendall(cmd)
+        elif msg[0] == 'reply':
+            network[msg[2]].sendall(cmd)
+        elif msg[0] == 'transfer':
+            for process in network:
+                if pid != process:
+                    network[process].sendall(cmd)
+
 
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.bind(('127.0.0.1', 3000))
 s.listen()
 network = {}
+lock = threading.Lock()
 
 while True:
         c, addr = s.accept()
         pid = c.recv(1024)
         pid = pid.decode('utf-8')
-        network[pid] = con
+        network[pid] = c
         # print(connections)
-        threading.Thread(target = thread, args=[con, connections]).start()
+        threading.Thread(target = connection, args=[c, pid]).start()
 
 
 
