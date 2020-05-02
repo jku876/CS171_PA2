@@ -16,15 +16,17 @@ def receive():
     global s
 
     while True:
-        msg = s.recv(1024)
-        print(msg.decode())
+        length = s.recv(2)
+        length = int(length.decode())
+        msg = s.recv(length)
         msg = msg.decode().split(', ')
         # request, clock, pid
         if msg[0] == 'request':
             with lock:
-                requests.put((msg[1],msg[2]))
+                requests.put((int(msg[1]),msg[2]))
                 # reply, sender_pid, receiver_pid
                 reply = 'reply, ' + pid + ', ' + msg[2]
+                reply = str(len(reply)) + reply
                 # send reply back to requesting process
                 s.sendall(reply.encode())
         # reply, sender_pid, receiver_pid
@@ -36,10 +38,16 @@ def receive():
         elif msg[0] == 'transfer':
             with lock:
                 temp = requests.get()
+                temp_list = []
+                while temp[1] != msg[1]:
+                    temp_list.append(temp)
+                    temp = requests.get()
                 if msg[2] == pid:
-                    clock = max(clock, int(temp[0])) + 1
+                    clock = max(clock, temp[0]) + 1
                     balance += int(msg[3])
                 blockchain.append((msg[1], msg[2], msg[3]))
+                for t in temp_list:
+                    requests.put(t)
 
 
 
@@ -68,26 +76,25 @@ def process():
                 with lock:
                     clock += 1
                     # Check if transfer amount is valid
-                    if balance < int(amount):
+                    if balance < int(amount) or receiver == pid:
                         print('FAILURE')
                         continue
-                    requests.put((str(clock),pid))
+                    requests.put((clock, pid))
                     # Send requests to other processes
                     request = 'request, ' +  str(clock) + ', ' + pid
+                    request = str(len(request)) + request
                     s.sendall(request.encode())
                 # Wait until request is at the top of the queue
                 # and replies have been received from the other processes
                 while True:
-                    time.sleep(0.001)
-                    with lock:
+                    if len(replies) == 2:
+                        with lock:
                         # Check if request is at the top
-                        top = requests.get()
-                        if top[1] == pid and len(replies) == 2:
-                            # Clear the replies received from other processes
-                            replies.clear()
-                            break
-                        # Top request is from another process, place request back on the queue
-                        requests.put(top)
+                            top = requests.get() 
+                            if top[1] == pid:
+                                replies.clear()
+                                break
+                            requests.put(top)
                 with lock:
                     # Change own balance
                     balance -= int(amount)
@@ -95,6 +102,7 @@ def process():
                     blockchain.append((pid, receiver, amount))
                     # Transfer, release, and broadcast message combined together
                     release = 'transfer, ' + pid + ', ' + receiver + ', ' + amount
+                    release = str(len(release)) + release
                     s.sendall(release.encode())
             # print blockchain
             elif event == 'blockchain':

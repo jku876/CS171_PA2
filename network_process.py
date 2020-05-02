@@ -8,19 +8,24 @@ def connection(c, pid):
     global network
     global lock
     while True:
-        cmd = c.recv(1024)
+        length = c.recv(2)
+        try: 
+            int(length.decode())
+        except ValueError:
+            continue
+        cmd = c.recv(int(length.decode()))
         msg = cmd.decode().split(', ')
         time.sleep(1)
         if msg[0] == 'request':
             for process in network:
                 if pid != process:
-                    network[process].sendall(cmd)
+                    network[process].sendall(length+cmd)
         elif msg[0] == 'reply':
-            network[msg[2]].sendall(cmd)
+            network[msg[2]].sendall(length+cmd)
         elif msg[0] == 'transfer':
             for process in network:
                 if pid != process:
-                    network[process].sendall(cmd)
+                    network[process].sendall(length+cmd)
 
 
 
