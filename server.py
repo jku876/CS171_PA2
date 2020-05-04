@@ -75,6 +75,7 @@ def process():
                 receiver = e[2]
                 with lock:
                     clock += 1
+                    print('Clock: ' + str(clock))
                     # Check if transfer amount is valid
                     if balance < int(amount) or receiver == pid:
                         print('FAILURE')
@@ -107,14 +108,11 @@ def process():
             # print blockchain
             elif event == 'blockchain':
                 with lock:
-                    clock += 1
                     print('blockchain: ' + str(blockchain))
             # print balance
             elif event == 'balance':
                 with lock:
-                    clock += 1
                     print('balance: ' + str(balance))
-
 
 # python server.py pid
 pid = sys.argv[1]
