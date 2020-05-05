@@ -25,6 +25,7 @@ def receive():
             # request, clock, pid
             if msg[0] == 'request':
                 requests.put((int(msg[1]),msg[2]))
+                temp_list = []
                 # reply, sender_pid, receiver_pid
                 clock += 1
                 reply = 'reply, ' + pid + ', ' + msg[2] + ', ' + str(clock)
@@ -41,14 +42,6 @@ def receive():
                     balance += int(msg[3])
                 blockchain.append((msg[1], msg[2], msg[3]))
                 temp = requests.get()
-                    # temp_list = []
-                    # while temp[1] != msg[1]:
-                    #     temp_list.append(temp)
-                    #     temp = requests.get()
-                    # for t in temp_list:
-                    #     requests.put(t)
-
-
 
 
 
@@ -78,9 +71,9 @@ def process():
                     if balance < int(amount) or receiver == pid:
                         print('FAILURE')
                         continue
+                    clock += 1
                     requests.put((clock, pid))
                     # Send requests to other processes
-                    clock += 1
                     request = 'request, ' +  str(clock) + ', ' + pid + ', ' + str(clock)
                     request = str(len(request)) + request
                     s.sendall(request.encode())
